@@ -1,0 +1,14 @@
+{
+  "name": "confer",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env server/index.js",
+    "dev": "node --env-file=.env --watch server/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confer — Architecture (living doc)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <!--
+      ┌─────────────────────────────────────────────────────────────────────┐
+      │  HOW TO KEEP THIS UPDATED                                            │
+      │  1. Task progress: edit the STATUS array near the bottom <script>.    │
+      │     status ∈ "done" | "partial" | "todo". The board + progress bar    │
+      │     + diagram legend all read from it.                                │
+      │  2. Architecture changed (new file / route / service)? Edit the two   │
+      │     Mermaid blocks (#diagram-arch, #diagram-flow) and the ENDPOINTS   │
+      │     and FILES tables. Keep node classes (built/partial/missing) in    │
+      │     sync with reality.                                                │
+      │  3. Bump META.updated + META.commit below.                            │
+      │  Open: `open ARCHITECTURE.html` or serve and hit /ARCHITECTURE.html.  │
+      └─────────────────────────────────────────────────────────────────────┘
+    -->
+  </head>
+  <body class="bg-neutral-950 text-neutral-100 min-h-screen">
+    <main class="max-w-5xl mx-auto px-6 py-10">
+
+      <!-- Header -->
+      <header class="mb-10">
+        <div class="flex items-center gap-2.5 mb-3">
+          <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-300 to-sky-500 grid place-items-center text-neutral-900 font-bold">C</div>
+          <h1 class="text-2xl font-semibold tracking-tight">Confer — Architecture</h1>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-400 border border-neutral-700">living doc</span>
+        </div>
+        <p class="text-neutral-300 max-w-3xl">A voice agent interviews an AI-in-design expert → extracts a structured dossier → matches them to high-fit <b>paid demand</b> + relevant <b>peers</b> from a seeded expertise graph. The durable asset is the graph, not the call.</p>
+        <p class="mt-2 text-sm text-neutral-500"><span id="meta-updated"></span> · <span id="meta-commit"></span> · target: Vapi "most commercially viable" ($1000)</p>
+      </header>
+
+      <!-- Progress -->
+      <section class="mb-10 rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-medium uppercase tracking-wider text-neutral-400">Build progress</h2>
+          <span id="progress-label" class="text-sm text-neutral-300"></span>
+        </div>
+        <div class="h-2.5 w-full rounded-full bg-neutral-800 overflow-hidden">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-emerald-500 to-sky-500 transition-all"></div>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-4 text-xs text-neutral-400">
+          <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-emerald-500"></span> built &amp; verified</span>
+          <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-amber-400"></span> partial / needs live key</span>
+          <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-neutral-600"></span> not built yet</span>
+        </div>
+      </section>
+
+      <!-- Component architecture -->
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-1">1 · Component map</h2>
+        <p class="text-sm text-neutral-400 mb-4">Who talks to whom. Green = built &amp; verified, amber = built but needs a live key, dashed grey = not wired yet.</p>
+        <div class="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-4 overflow-x-auto">
+          <pre class="mermaid" id="diagram-arch">
+flowchart LR
+  subgraph BROWSER["🖥️ Browser — no-build (Tailwind + vanilla ESM)"]
+    HTML["index.html<br/>two states: interview / results"]:::built
+    APP["app.js<br/>poll · renderResults · buyer · auto-fallback"]:::built
+    SDK["Vapi Web SDK<br/>in-browser mic call + transcript"]:::partial
+  end
+  subgraph SERVER["⚙️ Node / Express server"]
+    IDX["index.js<br/>routes + static serve"]:::built
+    PIPE["pipeline.js<br/>extract→match→store"]:::built
+    NEB["nebius.js<br/>extractDossier · matchExpert · matchBuyer"]:::partial
+    STORE["store.js<br/>memory ✓ / insforge ?"]:::partial
+    POOL["pool.js + seed/pool.json<br/>20 experts · 5 requests"]:::built
+    MOCK["mock.js<br/>offline dev aids"]:::built
+  end
+  subgraph EXT["☁️ External services"]
+    VAPI["Vapi<br/>voice"]:::missing
+    NEBIUS["Nebius Token Factory<br/>LLM (OpenAI-compatible)"]:::partial
+    INSFORGE["Insforge<br/>store / prize"]:::partial
+  end
+
+  SDK -. "Task 9" .-> VAPI
+  APP -- "POST /api/process {transcript}" --> IDX
+  APP -- "poll GET /api/latest" --> IDX
+  APP -- "POST /api/buyer {query}" --> IDX
+  APP -- "POST /api/mock-process (offline)" --> IDX
+  HTML --> APP
+  SDK --> APP
+  IDX --> PIPE
+  IDX --> MOCK
+  PIPE --> NEB
+  PIPE --> STORE
+  NEB --> NEBIUS
+  IDX --> POOL
+  STORE -. "STORE=insforge" .-> INSFORGE
+
+  classDef built fill:#064e3b,stroke:#10b981,color:#d1fae5;
+  classDef partial fill:#451a03,stroke:#f59e0b,color:#fde68a;
+  classDef missing fill:#1c1917,stroke:#57534e,color:#a8a29e,stroke-dasharray:5 4;
+          </pre>
+        </div>
+      </section>
+
+      <!-- Call lifecycle -->
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-1">2 · Call lifecycle (the wow)</h2>
+        <p class="text-sm text-neutral-400 mb-4">One interview, end to end. Dashed = the Task 9 voice path not yet wired; the rest runs today via <code class="text-sky-300">?mock=1</code>.</p>
+        <div class="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-4 overflow-x-auto">
+          <pre class="mermaid" id="diagram-flow">
+flowchart TD
+  A["① Expert clicks 'Use mic'"]:::partial --> B["② Vapi interviews ~90s<br/>(dynamic, 2 fixed anchors)"]:::partial
+  B --> C["③ Browser collects transcript<br/>from SDK events"]:::partial
+  C --> D["④ POST /api/process {transcript}"]:::built
+  D --> E["⑤ nebius.extractDossier<br/>→ 9-field dossier"]:::partial
+  E --> F["⑥ nebius.matchExpert(dossier, pool)<br/>→ 2 paid + 1-2 peers, each w/ why"]:::partial
+  F --> G["⑦ store.saveCall"]:::built
+  G --> H["⑧ app.js poll picks up latest"]:::built
+  H --> I["⑨ Results render:<br/>dossier + matches + intros"]:::built
+  I --> J["⑩ Flip: buyer query → shortlist"]:::built
+  D -. "on any failure / 8s watchdog" .-> R["Replay fallback (?demo=1)<br/>known-good fixture"]:::built
+
+  classDef built fill:#064e3b,stroke:#10b981,color:#d1fae5;
+  classDef partial fill:#451a03,stroke:#f59e0b,color:#fde68a;
+  classDef missing fill:#1c1917,stroke:#57534e,color:#a8a29e,stroke-dasharray:5 4;
+          </pre>
+        </div>
+      </section>
+
+      <!-- Build status board (data-driven) -->
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-1">3 · Build status</h2>
+        <p class="text-sm text-neutral-400 mb-4">12-task plan. Edit the <code class="text-sky-300">STATUS</code> array to keep this current.</p>
+        <div id="status-board" class="grid sm:grid-cols-2 gap-3"></div>
+      </section>
+
+      <!-- Offline modes -->
+      <section class="mb-10 rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">
+        <h2 class="text-sm font-medium uppercase tracking-wider text-sky-300/80 mb-3">Runs today — no keys</h2>
+        <ul class="space-y-2 text-sm text-neutral-300">
+          <li><code class="text-sky-300">STORE=memory npm start</code> → <code>localhost:3000</code></li>
+          <li><b><code class="text-sky-300">/?demo=1</code></b> — instant replay of a known-good result. The stage safety net.</li>
+          <li><b><code class="text-sky-300">/?mock=1</code></b> — full flow offline: canned interview → server stores a fixture call → poll renders results.</li>
+          <li>Buyer box returns a deterministic pool shortlist until <code>NEBIUS_API_KEY</code> is set (then it uses real Nebius).</li>
+        </ul>
+      </section>
+
+      <!-- Endpoints + Files -->
+      <section class="mb-10 grid md:grid-cols-2 gap-6">
+        <div>
+          <h2 class="text-lg font-semibold mb-3">API endpoints</h2>
+          <table class="w-full text-sm border border-neutral-800 rounded-lg overflow-hidden">
+            <tbody id="endpoints-table" class="divide-y divide-neutral-800"></tbody>
+          </table>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold mb-3">Key files</h2>
+          <table class="w-full text-sm border border-neutral-800 rounded-lg overflow-hidden">
+            <tbody id="files-table" class="divide-y divide-neutral-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Demo day -->
+      <section class="mb-10">
+        <h2 class="text-lg font-semibold mb-3">4 · Demo-day flow &amp; safety nets</h2>
+        <div class="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-5 text-sm text-neutral-300 space-y-2">
+          <p><b>1.</b> Tarek plays the expert live → ~90s voice interview.</p>
+          <p><b>2.</b> Screen renders dossier + 2 paid matches + 1-2 peer intros (each with a <i>why</i>).</p>
+          <p><b>3.</b> Presenter types a buyer query → shortlist from the network.</p>
+          <p><b>4.</b> Commercial line in one breath: <i>"Expert insight in an hour, not a week — experts opt in for high-fit paid demand, and the graph compounds every call."</i></p>
+          <p class="pt-2 text-neutral-400"><b>Nets:</b> <code>?demo=1</code> replay if voice/wifi flakes · auto-fallback on backend error (8s watchdog) · keep <code>STORE=memory</code> as the rehearsed default (Insforge shape unverified) · phone hotspot backup.</p>
+        </div>
+      </section>
+
+      <footer class="text-xs text-neutral-600 border-t border-neutral-800 pt-4">
+        Living doc — update the <code>STATUS</code> array + Mermaid blocks when the build changes. <b>Day-of steps: <code>DAYOF-RUNBOOK.md</code></b> · Vapi prompt: <code>VAPI_ASSISTANT.md</code>
+      </footer>
+    </main>
+
+    <script>
+      // ─── EDIT HERE to keep the doc current ──────────────────────────────
+      const META = { updated: "2026-06-19 (build day)", commit: "hackathon build" };
+
+      // status ∈ "done" | "partial" | "todo"
+      const STATUS = [
+        { id: 1,  name: "Scaffold (server + static serve)",        status: "done",    note: "Express, no-build front, /api/health" },
+        { id: 2,  name: "Seed pool + loader",                      status: "done",    note: "20 experts + 5 requests, AI-in-design" },
+        { id: 3,  name: "Swappable store (memory / insforge)",     status: "partial", note: "memory ✓; insforge REST now matches docs — needs key + table" },
+        { id: 4,  name: "Nebius extract dossier",                  status: "partial", note: "code + DI tests ✓; needs live key" },
+        { id: 5,  name: "Nebius LLM-judge match",                  status: "partial", note: "expert + buyer; needs live key" },
+        { id: 6,  name: "Endpoints + pipeline",                    status: "done",    note: "/process /latest /buyer /config" },
+        { id: 7,  name: "Results screen + polling",                status: "done",    note: "dossier + matches + buyer box" },
+        { id: 8,  name: "Replay fallback (?demo=1)",               status: "done",    note: "known-good fixture + transcript" },
+        { id: 9,  name: "Vapi Web SDK voice wiring",               status: "partial", note: "code pre-wired (ESM, guarded); needs keys + live test" },
+        { id: 10, name: "Live keys + seed tuning + insforge",      status: "todo",    note: "fill .env, tune matches live" },
+        { id: 11, name: "Skin to mockup",                          status: "done",    note: "browser-verified, matches mockup" },
+        { id: 12, name: "Rehearsal + pre-flight",                  status: "todo",    note: "on the day" },
+      ];
+
+      const ENDPOINTS = [
+        ["POST", "/api/process", "transcript → extract → match → store → call"],
+        ["GET",  "/api/latest",  "most recent call (frontend polls 1.5s)"],
+        ["POST", "/api/buyer",   "query → shortlist (offline pool if no key)"],
+        ["GET",  "/api/config",  "Vapi public key + assistant id"],
+        ["POST", "/api/mock-process", "dev: store a fixture call (offline proof)"],
+        ["GET",  "/api/health",  "{ ok: true }"],
+      ];
+      const FILES = [
+        ["server/index.js", "routes + static + boot guard"],
+        ["server/pipeline.js", "runPipeline (DI: extract/match/store)"],
+        ["server/nebius.js", "extractDossier · matchExpert · matchBuyer"],
+        ["server/store.js", "makeMemoryStore · makeInsforgeStore"],
+        ["server/pool.js", "loadPool (cached)"],
+        ["server/mock.js", "offline dev aids"],
+        ["public/index.html", "interview + results UI"],
+        ["public/app.js", "poll · render · buyer · auto-fallback"],
+        ["public/demo-fixture.js", "DEMO_CALL replay data"],
+      ];
+      // ────────────────────────────────────────────────────────────────────
+
+      const COLOR = { done: "bg-emerald-500", partial: "bg-amber-400", todo: "bg-neutral-600" };
+      const RING  = { done: "border-emerald-500/25", partial: "border-amber-400/25", todo: "border-neutral-700" };
+      const LABEL = { done: "done", partial: "partial", todo: "to build" };
+
+      document.getElementById("meta-updated").textContent = "updated " + META.updated;
+      document.getElementById("meta-commit").textContent = META.commit;
+
+      // progress
+      const score = STATUS.reduce((a, t) => a + (t.status === "done" ? 1 : t.status === "partial" ? 0.5 : 0), 0);
+      const pct = Math.round((score / STATUS.length) * 100);
+      document.getElementById("progress-bar").style.width = pct + "%";
+      document.getElementById("progress-label").textContent =
+        `${pct}% — ${STATUS.filter(t=>t.status==="done").length} done · ${STATUS.filter(t=>t.status==="partial").length} partial · ${STATUS.filter(t=>t.status==="todo").length} to build`;
+
+      // status board
+      document.getElementById("status-board").innerHTML = STATUS.map((t) => `
+        <div class="rounded-xl border ${RING[t.status]} bg-neutral-900/60 p-3">
+          <div class="flex items-center gap-2">
+            <span class="h-2.5 w-2.5 rounded-sm ${COLOR[t.status]}"></span>
+            <span class="text-xs text-neutral-500">Task ${t.id}</span>
+            <span class="ml-auto text-[10px] uppercase tracking-wider text-neutral-500">${LABEL[t.status]}</span>
+          </div>
+          <div class="mt-1 font-medium text-sm">${t.name}</div>
+          <div class="text-xs text-neutral-400 mt-0.5">${t.note}</div>
+        </div>`).join("");
+
+      // endpoints
+      document.getElementById("endpoints-table").innerHTML = ENDPOINTS.map(([m, p, d]) => `
+        <tr>
+          <td class="px-2 py-1.5 font-mono text-xs text-emerald-400 align-top">${m}</td>
+          <td class="px-2 py-1.5 font-mono text-xs text-sky-300 align-top whitespace-nowrap">${p}</td>
+          <td class="px-2 py-1.5 text-xs text-neutral-400">${d}</td>
+        </tr>`).join("");
+
+      // files
+      document.getElementById("files-table").innerHTML = FILES.map(([f, d]) => `
+        <tr>
+          <td class="px-2 py-1.5 font-mono text-xs text-sky-300 align-top whitespace-nowrap">${f}</td>
+          <td class="px-2 py-1.5 text-xs text-neutral-400">${d}</td>
+        </tr>`).join("");
+
+      mermaid.initialize({ startOnLoad: true, theme: "dark", themeVariables: { fontFamily: "ui-sans-serif, system-ui", fontSize: "13px" } });
+    </script>
+  </body>
+</html>

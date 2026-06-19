@@ -1,0 +1,48 @@
+--- Confer interview transcript — Maya Okonkwo ---
+Duration: ~90 seconds | Turns: 16
+
+Agent: Hi, thanks for joining. I'm going to ask you a few quick questions to build your expert profile. What's your name and how would you describe what you do in one sentence?
+
+Maya: I'm Maya Okonkwo. I'm a design-systems lead — I spend most of my time making sure AI tooling actually fits inside a mature design system instead of blowing it up.
+
+Agent: Great. Where are you based and what kind of company are you at right now?
+
+Maya: I'm in London. I'm at a mid-size fintech — we're regulated, so the design bar is high and we can't just ship whatever a generator spits out.
+
+Agent: Makes sense. What are the two or three subspecialties you'd say you own most deeply?
+
+Maya: Design systems, definitely. AI-assisted tooling — I've spent the last year figuring out where generative tools actually fit. And design ops; someone has to run the governance side when you're moving fast with AI.
+
+Agent: Can you tell me about something concrete you've shipped that you're proud of?
+
+Maya: Yeah. I built an internal Figma plugin that auto-generates component variants from our token set. Designers describe the state they need, the plugin maps it to our existing tokens, and it outputs a compliant variant directly into the library. No hand-tweaking, no off-brand colors slipping through.
+
+Agent: That's specific. How long did that take and what was the hardest part?
+
+Maya: About three months end to end. Hardest part was the constraint layer — getting the model to refuse to generate anything that violated spacing or color rules rather than just hallucinating a close-enough version. Opinionated guardrails beat open-ended freedom every time for this kind of work.
+
+Agent: That leads me to ask — what's your strongest opinion about AI in design right now?
+
+Maya: Two things. First: AI design tools should be opinionated, not blank-canvas. The blank-canvas tools look impressive in demos but they create governance nightmares at scale. Second: design systems are the only place AI codegen is safe to ship today. Outside of a system, you can't verify the output. Inside one, you can.
+
+Agent: Those are pretty strong positions. Do you get pushback on that?
+
+Maya: All the time. Product managers love the blank-canvas demos. I show them the audit three months later when there are forty off-brand button variants and they come around.
+
+Agent: Fair. What are you hoping to get from joining this network?
+
+Maya: Paid advisory work with teams that are already mid-adoption — companies that have a design system and are trying to layer AI in without breaking what they've built. I don't want to start from scratch with teams who haven't done the foundations yet.
+
+Agent: And is there a type of person you'd find genuinely useful to meet — a peer, not a client?
+
+Maya: Yeah, someone who's on the evaluation side. If there's a researcher or an analyst who's actually trying to measure AI-generated UI quality — not just vibes, but real rubrics — I'd find that conversation really valuable. I ship it; I'd love to meet someone who grades it.
+
+Agent: Last question — anything you'd flag as out of scope, things you won't advise on?
+
+Maya: Consumer apps with no design system and a "move fast" mandate. That's not my context and I'd be guessing. Also anything that's basically asking me to validate shipping raw LLM output without a review layer — I won't do that.
+
+Agent: Perfect, that's everything I need. I'll run your profile against our network now and come back with matches.
+
+Maya: Great, looking forward to it.
+
+--- End of transcript ---
